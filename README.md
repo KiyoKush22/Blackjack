@@ -1,2 +1,2 @@
 # Blackjack
-Black jack card game implementing merge sort.
+Blackjack card game implementing merge sort.
