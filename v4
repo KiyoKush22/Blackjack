@@ -1,0 +1,160 @@
+import random
+
+class Card:
+    def __init__(self, value, name):
+        self.value = value
+        self.name = name
+        self.used = False
+
+class Deck:
+    def __init__(self):
+        self.cards = []
+        self.create_deck()
+        self.shuffle()
+
+    def create_deck(self):
+        names = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'Jack', 'Queen', 'King', 'Ace']
+        values = [2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10, 10, 11]
+        suits = ['Hearts', 'Diamonds', 'Clubs', 'Spades']
+        for suit in suits:
+            for name, value in zip(names, values):
+                card_name = f"{name} of {suit}"
+                self.cards.append(Card(value, card_name))
+
+    def shuffle(self):
+        random.shuffle(self.cards)
+
+    def reset(self):
+        for card in self.cards:
+            card.used = False
+
+    def hit(self):
+        card = random.choice(self.cards)
+        while card.used:
+            card = random.choice(self.cards)
+        card.used = True
+        return card
+
+class Hand:
+    def __init__(self):
+        self.cards = []
+
+    def add_card(self, card):
+        self.cards.append(card)
+        self.sort_hand()
+
+    def sort_hand(self):
+        self.cards.sort(key=lambda x: x.value)
+
+    def get_score(self):
+        score = 0
+        ace_count = 0
+        for card in self.cards:
+            score += card.value
+            if card.value == 11:
+                ace_count += 1
+        while score > 21 and ace_count > 0:
+            score -= 10
+            ace_count -= 1
+        return score
+
+    def display(self, owner):
+        hand_description = ', '.join([card.name for card in self.cards])
+        print(f"{owner}'s Hand: {hand_description}")
+        print(f"{owner}'s Score: {self.get_score()}\n")
+
+class Player:
+    def __init__(self, deck, owner="Player"):
+        self.hand = Hand()
+        self.deck = deck
+        self.owner = owner
+
+    def initial_deal(self):
+        self.hand.add_card(self.deck.hit())
+        self.hand.add_card(self.deck.hit())
+        self.hand.display(self.owner)
+
+    def hit(self):
+        card = self.deck.hit()
+        self.hand.add_card(card)
+        print(f"{self.owner} hits: {card.name}")
+        self.hand.display(self.owner)
+
+    def stay(self):
+        print(f"{self.owner} stays.\n")
+
+    def play(self):
+        while True:
+            choice = input("Do you want to hit or stay? (h/s): ").lower()
+            if choice == 'h':
+                self.hit()
+                if self.hand.get_score() > 21:
+                    print(f"{self.owner} busts!")
+                    self.hand = Hand()  # Empty the hand to show a score of 0
+                    print(f"{self.owner}'s Score: {self.hand.get_score()}\n")
+                    return
+            else:
+                self.stay()
+                break
+
+class House(Player):
+    def play(self):
+        while self.hand.get_score() < 17:
+            self.hit()
+        if self.hand.get_score() > 21:
+            print("House busts!")
+            self.hand = Hand()  # Empty the hand to show a score of 0
+        print(f"{self.owner}'s Score: {self.hand.get_score()}\n")  # Display the score, whether bust or not
+
+class Game:
+    def __init__(self):
+        self.deck = Deck()
+        self.player_score = 0
+        self.play_game()
+
+    def explain_rules(self):
+        print("Welcome to Blackjack!")
+        print("The goal is to get as close to 21 as possible without going over.")
+        print("Face cards are worth 10, and Aces can be worth 1 or 11.")
+        print("You will be dealt two cards, and you can choose to 'hit' to take another card or 'stay' to keep your hand.")
+        print("If you go over 21, you bust, and your score is set to 0.")
+        print("The round continues until the house also plays, and the difference in scores will be added to or subtracted from your total score.\n")
+
+    def play_game(self):
+        self.explain_rules()
+        while True:
+            play_choice = input("Do you want to play? (y/n): ").lower()
+            if play_choice == 'y':
+                self.play_round()
+            else:
+                print(f"Thanks for playing! Your final score is {self.player_score}.")
+                break
+            self.deck.reset()
+
+    def play_round(self):
+        self.deck.shuffle()
+
+        # Initial dealing
+        house = House(self.deck, "House")
+        player = Player(self.deck)
+        house.initial_deal()
+        player.initial_deal()
+
+        # Player's turn
+        player.play()
+        player_score = player.hand.get_score()
+
+        # House's turn
+        house.play()
+        house_score = house.hand.get_score()
+
+        # Calculate the score difference
+        round_score = player_score - house_score
+
+        # Update player's total score
+        self.player_score += round_score
+        print(f"Round score: {round_score}")
+        print(f"Total score: {self.player_score}\n")
+
+if __name__ == "__main__":
+    game = Game()
